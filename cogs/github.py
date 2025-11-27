@@ -102,3 +102,4 @@ class GitHubWatcher(commands.Cog):
 
 async def setup(bot):
     await bot.add_cog(GitHubWatcher(bot))
+#

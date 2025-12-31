@@ -16,6 +16,7 @@ intents = discord.Intents.default()
 intents.guilds = True
 intents.members = True
 intents.message_content = True
+intents.reactions = True        # <---- WICHTIG FÜR TO-DO SYSTEM!!
 
 bot = commands.Bot(command_prefix="!", intents=intents)
 

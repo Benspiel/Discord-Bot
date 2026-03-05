@@ -4,6 +4,7 @@ from discord.ext import commands
 class CountGame(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
+        # Deine Channel ID
         self.channel_id = 1439619613729230939
 
         self.last_number = 0
@@ -14,7 +15,7 @@ class CountGame(commands.Cog):
 
     @commands.Cog.listener()
     async def on_ready(self):
-        """Scannt beim Bot-Start die letzte gültige Zahl – ohne Console-Ausgabe."""
+        """Scannt beim Bot-Start die letzte gültige Zahl."""
         channel = self.bot.get_channel(self.channel_id)
         if not channel:
             return
@@ -22,8 +23,9 @@ class CountGame(commands.Cog):
         async for msg in channel.history(limit=200, oldest_first=False):
             if msg.author.bot:
                 continue
-            if msg.content.isdigit():
-                self.last_number = int(msg.content)
+            # Nur Nachrichten werten, die eine reine Zahl sind
+            if msg.content.strip().isdigit():
+                self.last_number = int(msg.content.strip())
                 self.last_user = msg.author.id
                 return
 
@@ -37,24 +39,23 @@ class CountGame(commands.Cog):
 
         content = message.content.strip()
 
-        # Prüfen ob Zahl
+        # ÄNDERUNG: Wenn es keine Zahl ist, ignorieren wir die Nachricht komplett
         if not content.isdigit():
-            await self.wrong_number(message, "Du musst eine Zahl senden!")
             return
 
         number = int(content)
 
-        # User zweimal hintereinander
+        # Prüfen, ob derselbe User zweimal hintereinander schreibt
         if message.author.id == self.last_user:
             await self.user_twice(message)
             return
 
-        # Falsche Zahl -> Nachricht stehen lassen
+        # Prüfen, ob die Zahl die richtige Reihenfolge hat
         if number != self.last_number + 1:
-            await self.wrong_number(message, f"Erwartet war **{self.last_number + 1}**.")
+            await self.wrong_number(message)
             return
 
-        # Richtig
+        # Alles korrekt!
         self.last_number = number
         self.last_user = message.author.id
 
@@ -63,28 +64,22 @@ class CountGame(commands.Cog):
         except:
             pass
 
-    async def wrong_number(self, message: discord.Message, error_text: str):
-        """Falsche Zahl -> stehen lassen, ❌ Reaction, Channel Nachricht, Reset."""
-
+    async def wrong_number(self, message: discord.Message):
+        """Falsche Zahl -> ❌ Reaction, Reset auf 0."""
         try:
             await message.add_reaction(self.fail_emoji)
         except:
             pass
 
         await message.channel.send(
-            f"❌ {message.author.mention} hat verkackt – es geht wieder bei **0** los!"
+            f"❌ {message.author.mention} hat die falsche Zahl geschrieben – es geht wieder bei **0** los!"
         )
 
         self.last_number = 0
         self.last_user = None
 
     async def user_twice(self, message: discord.Message):
-        """User zweimal -> löschen + DM."""
-        try:
-            await message.add_reaction(self.fail_emoji)
-        except:
-            pass
-
+        """User schreibt zweimal hintereinander -> Nachricht löschen & DM."""
         try:
             await message.delete()
         except:
@@ -101,7 +96,6 @@ class CountGame(commands.Cog):
             await message.author.send(embed=embed)
         except:
             pass
-
 
 async def setup(bot):
     await bot.add_cog(CountGame(bot))
